@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+const express = require("express");
+const app = express();
 const { Telegraf } = require("telegraf");
 const axios = require("axios");
 const fs = require("fs");
@@ -387,6 +389,16 @@ bot.action("jpg_to_pdf", async (ctx) => {
 
     await ctx.reply("❌ JPG to PDF conversion failed.");
   }
+});
+
+app.get("/", (req, res) => {
+  res.send("QuickTools Bot is running 🚀");
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
 bot.launch();
