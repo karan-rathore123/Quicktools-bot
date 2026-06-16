@@ -395,6 +395,12 @@ app.get("/", (req, res) => {
   res.send("QuickTools Bot is running 🚀");
 });
 
+bot.command("myid", (ctx) => {
+  console.log(ctx.from);
+
+  ctx.reply(`Your Telegram ID is ${ctx.from.id}`);
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
