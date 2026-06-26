@@ -1,24 +1,19 @@
-const axios = require("axios");
-const fs = require("fs");
-const FormData = require("form-data");
+const ILovePDFFile = require("@ilovepdf/ilovepdf-nodejs/ILovePDFFile");
+const instance = require("./ilovepdf");
 
 async function mergePdf(filePaths) {
-  const formData = new FormData();
+  const task = instance.newTask("merge");
+
+  await task.start();
 
   for (const filePath of filePaths) {
-    formData.append("pdfs", fs.createReadStream(filePath));
+    const file = new ILovePDFFile(filePath);
+    await task.addFile(file);
   }
 
-  const response = await axios.post(
-    `${process.env.BACKEND_URL}/merge`,
-    formData,
-    {
-      headers: formData.getHeaders(),
-      responseType: "arraybuffer",
-    }
-  );
+  await task.process();
 
-  return response.data;
+  return task.download();
 }
 
 module.exports = mergePdf;

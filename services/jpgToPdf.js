@@ -1,22 +1,17 @@
-const axios = require("axios");
-const fs = require("fs");
-const FormData = require("form-data");
+const ILovePDFFile = require("@ilovepdf/ilovepdf-nodejs/ILovePDFFile");
+const instance = require("./ilovepdf");
 
 async function jpgToPdf(inputPath) {
-  const formData = new FormData();
+  const task = instance.newTask("imagepdf");
 
-  formData.append("image", fs.createReadStream(inputPath));
+  await task.start();
 
-  const response = await axios.post(
-    `${process.env.BACKEND_URL}/jpg-to-pdf`,
-    formData,
-    {
-      headers: formData.getHeaders(),
-      responseType: "arraybuffer",
-    }
-  );
+  const file = new ILovePDFFile(inputPath);
 
-  return response.data;
+  await task.addFile(file);
+  await task.process();
+
+  return task.download();
 }
 
 module.exports = jpgToPdf;

@@ -6,12 +6,11 @@ const { Telegraf } = require("telegraf");
 const axios = require("axios");
 const fs = require("fs");
 const bot = new Telegraf(process.env.BOT_TOKEN);
-const FormData = require("form-data");
 const userFiles = {};
+const compressPdf = require("./services/compressPdf");
 const mergePdf = require("./services/mergePdf");
 const wordToPdf = require("./services/wordToPdf");
 const jpgToPdf = require("./services/jpgToPdf");
-const startReminderCron = require("./cron/reminderCron");
 
 if (!fs.existsSync("temp")) {
   fs.mkdirSync("temp");
@@ -43,7 +42,7 @@ Examples:
 📄 Send a DOCX → Convert to PDF
 🖼 Send an Image → Convert to PDF
 
-More tools and a Reminder Mini App are coming soon! 🎉`,
+Need reminders? Open the QuickTools Mini App from the menu button.`,
   );
 }
 
@@ -171,22 +170,9 @@ bot.action("compress", async (ctx) => {
       writer.on("error", reject);
     });
 
-    // Send PDF to backend
-    const formData = new FormData();
+    const compressedPdf = await compressPdf(inputPath);
 
-    formData.append("pdf", fs.createReadStream(inputPath));
-
-    const compressedResponse = await axios.post(
-      `${process.env.BACKEND_URL}/compress`,
-      formData,
-      {
-        headers: formData.getHeaders(),
-        responseType: "arraybuffer",
-      },
-    );
-
-    // Save compressed PDF
-    fs.writeFileSync(outputPath, compressedResponse.data);
+    fs.writeFileSync(outputPath, compressedPdf);
 
     // Send compressed PDF to user
     await ctx.replyWithDocument({
@@ -432,7 +418,6 @@ app.listen(PORT, () => {
 
 bot.launch();
 
-startReminderCron(bot);
 console.log("Bot Started");
 
 process.once("SIGINT", () => bot.stop("SIGINT"));
