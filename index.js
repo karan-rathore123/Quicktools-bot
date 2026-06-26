@@ -11,14 +11,45 @@ const userFiles = {};
 const mergePdf = require("./services/mergePdf");
 const wordToPdf = require("./services/wordToPdf");
 const jpgToPdf = require("./services/jpgToPdf");
+const startReminderCron = require("./cron/reminderCron");
 
 if (!fs.existsSync("temp")) {
   fs.mkdirSync("temp");
 }
 
-bot.start((ctx) => {
-  ctx.reply("QuickTools Bot Ready 🚀");
-});
+function sendWelcomeMessage(ctx) {
+  const firstName = ctx.from?.first_name || "there";
+
+  return ctx.reply(
+    `👋 Hello ${firstName}!
+
+Welcome to QuickTools 🚀
+Your all-in-one file utility bot.
+
+✨ Available Features:
+🗜 Compress PDF
+🔗 Merge Multiple PDFs
+📄 Convert Word → PDF
+🖼 Convert JPG/PNG → PDF
+
+📖 How to use:
+1. Send a file to this chat.
+2. Choose the action from the buttons.
+3. Wait a few seconds.
+4. Download your processed file.
+
+Examples:
+📄 Send a PDF → Compress or Merge
+📄 Send a DOCX → Convert to PDF
+🖼 Send an Image → Convert to PDF
+
+More tools and a Reminder Mini App are coming soon! 🎉`,
+  );
+}
+
+bot.start(sendWelcomeMessage);
+
+bot.command("help", sendWelcomeMessage);
 
 bot.on("document", async (ctx) => {
   const file = ctx.message.document;
@@ -35,59 +66,51 @@ bot.on("document", async (ctx) => {
   console.log(file);
 
   const allowedTypes = [
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "image/jpeg",
-  "image/png",
-];
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "image/jpeg",
+    "image/png",
+  ];
 
   if (!allowedTypes.includes(file.mime_type)) {
-    return ctx.reply(
-  "❌ Please send a PDF, DOCX, JPG or PNG file."
-);
+    return ctx.reply("❌ Please send a PDF, DOCX, JPG or PNG file.");
   }
 
   if (file.mime_type === "application/pdf") {
-    await ctx.reply(
-  `📄 ${userFiles[userId].length} PDF(s) uploaded.`
-);
-  await ctx.reply("Choose an action:", {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "🗜 Compress PDF", callback_data: "compress" }],
-        [{ text: "🔗 Merge PDF", callback_data: "merge" }],
-      ],
-    },
-  });
-}
-else if (
-  file.mime_type ===
+    await ctx.reply(`📄 ${userFiles[userId].length} PDF(s) uploaded.`);
+    await ctx.reply("Choose an action:", {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🗜 Compress PDF", callback_data: "compress" }],
+          [{ text: "🔗 Merge PDF", callback_data: "merge" }],
+        ],
+      },
+    });
+  } else if (
+    file.mime_type ===
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-) {
-  await ctx.reply("📄 Word file uploaded.");
-  await ctx.reply("Choose an action:", {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "📄 Word → PDF", callback_data: "word_to_pdf" }],
-      ],
-    },
-  });
-}
-else if (
-  file.mime_type === "image/jpeg" ||
-  file.mime_type === "image/png"
-) {
-  await ctx.reply("🖼 Image uploaded.");
-  await ctx.reply("Choose an action:", {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "🖼 JPG → PDF", callback_data: "jpg_to_pdf" }],
-      ],
-    },
-  });
-}
-
-
+  ) {
+    await ctx.reply("📄 Word file uploaded.");
+    await ctx.reply("Choose an action:", {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "📄 Word → PDF", callback_data: "word_to_pdf" }],
+        ],
+      },
+    });
+  } else if (
+    file.mime_type === "image/jpeg" ||
+    file.mime_type === "image/png"
+  ) {
+    await ctx.reply("🖼 Image uploaded.");
+    await ctx.reply("Choose an action:", {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🖼 JPG → PDF", callback_data: "jpg_to_pdf" }],
+        ],
+      },
+    });
+  }
 });
 
 bot.on("photo", async (ctx) => {
@@ -97,7 +120,7 @@ bot.on("photo", async (ctx) => {
   const photo = ctx.message.photo.pop();
 
   userFiles[userId] = [photo.file_id];
-  
+
   await ctx.reply("🖼 Image uploaded.");
   await ctx.reply("Choose an action:", {
     reply_markup: {
@@ -118,10 +141,10 @@ bot.action("compress", async (ctx) => {
 
   const userId = ctx.from.id;
   if (!userFiles[userId] || userFiles[userId].length === 0) {
-  return ctx.reply("❌ Please upload a PDF first.");
-}
+    return ctx.reply("❌ Please upload a PDF first.");
+  }
 
-const fileId = userFiles[userId][0];
+  const fileId = userFiles[userId][0];
 
   const inputPath = `temp/${userId}_input.pdf`;
   const outputPath = `temp/${userId}_compressed.pdf`;
@@ -274,10 +297,10 @@ bot.action("word_to_pdf", async (ctx) => {
 
   const userId = ctx.from.id;
   if (!userFiles[userId] || userFiles[userId].length === 0) {
-  return ctx.reply("❌ Upload a DOCX file first.");
-}
+    return ctx.reply("❌ Upload a DOCX file first.");
+  }
 
-const fileId = userFiles[userId][0];
+  const fileId = userFiles[userId][0];
 
   const inputPath = `temp/${userId}.docx`;
   const outputPath = `temp/${userId}.pdf`;
@@ -409,6 +432,7 @@ app.listen(PORT, () => {
 
 bot.launch();
 
+startReminderCron(bot);
 console.log("Bot Started");
 
 process.once("SIGINT", () => bot.stop("SIGINT"));
